@@ -49,7 +49,7 @@ pipeline {
                     ]],
                     extensions: [[
                         $class: 'CloneOption',
-                        depth: 1,  # Shallow clone
+                        depth: 1, //Shallow clone
                         noTags: false
                     ]]
                 ])
