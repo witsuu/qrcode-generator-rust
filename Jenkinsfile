@@ -13,14 +13,32 @@ pipeline {
         stage('Capture Webhook Data') {
             steps {
                 script {
-                    // Log semua environment variables
-                    echo "All env variables:\n${env}"
+                    // Debug 1: Tampilkan semua parameter
+                    echo "All build parameters: ${params}"
                     
-                    // Verifikasi TAG_NAME dari webhook
-                    if (!env.TAG_NAME?.trim()) {
-                        error "❌ TAG_NAME not found in webhook payload. Ensure GitHub webhook is properly configured with release.tag_name"
+                    // Debug 2: Tampilkan penyebab build
+                    echo "Build causes: ${currentBuild.getBuildCauses()}"
+                    
+                    // Debug 3: Coba baca payload manual
+                    try {
+                        def payload = readJSON text: currentBuild.getBuildCauses()[0].shortDescription
+                        echo "Raw payload: ${payload}"
+                        env.TAG_NAME = payload.release?.tag_name
+                    } catch(e) {
+                        echo "Cannot parse payload: ${e.message}"
                     }
-                    echo "✅ Received TAG_NAME from webhook: ${env.TAG_NAME}"
+                    
+                    // Validasi akhir
+                    if (!env.TAG_NAME?.trim()) {
+                        error """
+                        ❌ TAG_NAME not found. Possible causes:
+                        1. GitHub webhook misconfigured
+                        2. Generic Webhook Trigger plugin not extracting properly
+                        3. Payload format mismatch
+                        Current env: ${env.getEnvironment()}
+                        """
+                    }
+                    echo "✅ Using TAG_NAME: ${env.TAG_NAME}"
                 }
             }
         }
