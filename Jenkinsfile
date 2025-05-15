@@ -21,9 +21,9 @@ pipeline {
 
         stage('Clone Tag') {
             steps {
-                echo "🚀 Cloning release tag: ${env.TAG_NAME}"
+                echo "🚀 Cloning release tag: ${TAG_NAME}"
                 checkout([$class: 'GitSCM',
-                    branches: [[name: "refs/tags/${env.TAG_NAME}"]],
+                    branches: [[name: "refs/tags/${TAG_NAME}"]],
                     userRemoteConfigs: [[url: 'https://github.com/witsuu/qrcode-generator-rust.git']]
                 ])
             }
