@@ -12,6 +12,7 @@ pipeline {
         CARGO_HOME = "${WORKSPACE}/.cargo"
         RUSTUP_HOME = "${WORKSPACE}/.rustup"
         PATH = "${WORKSPACE}/.cargo/bin:${PATH}"
+        TAG_NAME = "${params.TAG_NAME}"
     }
 
     stages {
