@@ -16,6 +16,27 @@ pipeline {
     }
 
     stages {
+        stage('Initialize') {
+            steps {
+                script {
+                    echo "${params}"
+                    // Prioritaskan parameter dari webhook atau manual
+                    env.TAG_NAME = params.TAG_NAME?.trim()
+                    
+                    if (!env.TAG_NAME) {
+                        // Coba dapatkan dari variabel environment lain jika ada
+                        env.TAG_NAME = env.GIT_TAG ?: env.BRANCH_NAME ?: ''
+                    }
+                    
+                    if (!env.TAG_NAME) {
+                        error "TAG_NAME must be specified via parameter or webhook"
+                    }
+                    
+                    echo "Using TAG_NAME: ${env.TAG_NAME}"
+                }
+            }
+        }
+
         stage('Debug ENV') {
             steps {
                 sh 'printenv | sort'
