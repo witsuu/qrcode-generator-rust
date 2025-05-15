@@ -15,6 +15,12 @@ pipeline {
     }
 
     stages {
+        stage('Debug ENV') {
+            steps {
+                sh 'printenv | sort'
+            }
+        }
+
         stage('Validate TAG_NAME') {
             steps {
                 script {
