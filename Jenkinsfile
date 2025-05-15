@@ -46,7 +46,6 @@ pipeline {
                     branches: [[name: "refs/tags/${env.TAG_NAME}"]],
                     userRemoteConfigs: [[
                         url: 'https://github.com/witsuu/qrcode-generator-rust.git',
-                        credentialsId: ''  # Isi jika perlu auth
                     ]],
                     extensions: [[
                         $class: 'CloneOption',
