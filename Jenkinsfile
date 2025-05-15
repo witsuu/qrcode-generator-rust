@@ -1,13 +1,7 @@
-// ✨ Deklarasi parameter dari webhook GitHub
-properties([
-    parameters([
-        string(name: 'TAG_NAME', description: 'GitHub Release tag name')
-    ])
-])
-
 pipeline {
     agent any
 
+    // Environment variables global
     environment {
         CARGO_HOME = "${WORKSPACE}/.cargo"
         RUSTUP_HOME = "${WORKSPACE}/.rustup"
@@ -15,83 +9,73 @@ pipeline {
     }
 
     stages {
-        stage('Initialize') {
+        // Stage 1: Debugging - Capture payload
+        stage('Capture Webhook Data') {
             steps {
                 script {
-                    echo "${params}"
-                    // Prioritaskan parameter dari webhook atau manual
-                    env.TAG_NAME = params.TAG_NAME?.trim()
+                    // Log semua environment variables
+                    echo "All env variables:\n${env.getEnvironment().collect { "$it.key=$it.value" }.join('\n')}"
                     
-                    if (!env.TAG_NAME) {
-                        // Coba dapatkan dari variabel environment lain jika ada
-                        env.TAG_NAME = env.GIT_TAG ?: env.BRANCH_NAME ?: ''
-                    }
-                    
-                    if (!env.TAG_NAME) {
-                        error "TAG_NAME must be specified via parameter or webhook"
-                    }
-                    
-                    echo "Using TAG_NAME: ${env.TAG_NAME}"
-                }
-            }
-        }
-
-        stage('Debug ENV') {
-            steps {
-                sh 'printenv | sort'
-            }
-        }
-
-        stage('Validate TAG_NAME') {
-            steps {
-                script {
+                    // Verifikasi TAG_NAME dari webhook
                     if (!env.TAG_NAME?.trim()) {
-                        error "❌ TAG_NAME is missing. Make sure this job is triggered by a GitHub Release webhook."
+                        error "❌ TAG_NAME not found in webhook payload. Ensure GitHub webhook is properly configured with '$.release.tag_name'"
                     }
-                    echo "✅ Received TAG_NAME: ${env.TAG_NAME}"
+                    echo "✅ Received TAG_NAME from webhook: ${env.TAG_NAME}"
                 }
             }
         }
 
+        // Stage 2: Setup Rust
         stage('Setup Rust') {
             steps {
-                sh '''#!/bin/bash
-                    curl https://sh.rustup.rs -sSf | sh -s -- -y
-                    . ${WORKSPACE}/.cargo/env
+                sh '''#!/bin/bash -xe
+                    curl --fail https://sh.rustup.rs -sSf | sh -s -- -y
+                    source "${CARGO_HOME}/env"
                     rustc --version
                     cargo --version
                 '''
             }
         }
 
+        // Stage 3: Clone repository
         stage('Clone Tag') {
             steps {
-                echo "🔄 Cloning release tag: ${env.TAG_NAME}"
-                checkout([$class: 'GitSCM',
+                echo "🔄 Cloning tag: ${env.TAG_NAME}"
+                checkout([
+                    $class: 'GitSCM',
                     branches: [[name: "refs/tags/${env.TAG_NAME}"]],
-                    userRemoteConfigs: [[url: 'https://github.com/witsuu/qrcode-generator-rust.git']]
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/witsuu/qrcode-generator-rust.git',
+                        credentialsId: ''  # Isi jika perlu auth
+                    ]],
+                    extensions: [[
+                        $class: 'CloneOption',
+                        depth: 1,  # Shallow clone
+                        noTags: false
+                    ]]
                 ])
             }
         }
 
+        // Stage 4: Build
         stage('Build Release') {
             steps {
-                sh '''#!/bin/bash
-                    . ${WORKSPACE}/.cargo/env
+                sh '''#!/bin/bash -xe
+                    source "${CARGO_HOME}/env"
                     cargo build --release
                 '''
             }
         }
-
-        // Optional: tambahkan test atau upload ke GitHub Release/binary server
     }
 
     post {
         success {
-            echo "✅ Build completed successfully for ${env.TAG_NAME}"
+            echo "✅ Successfully built ${env.TAG_NAME}"
+            // Tambahkan upload artifact jika perlu
         }
         failure {
-            echo "❌ Build failed for ${env.TAG_NAME}"
+            echo "❌ Failed to build ${env.TAG_NAME}"
+            slackSend channel: '#builds', message: "Build failed for ${env.TAG_NAME}"  # Contoh notifikasi
         }
     }
 }
