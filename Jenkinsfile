@@ -1,7 +1,7 @@
 // ✨ Deklarasi parameter dari webhook GitHub
 properties([
     parameters([
-        string(name: 'TAG_NAME', defaultValue: '', description: 'GitHub Release tag name')
+        string(name: 'TAG_NAME', description: 'GitHub Release tag name')
     ])
 ])
 
@@ -12,7 +12,6 @@ pipeline {
         CARGO_HOME = "${WORKSPACE}/.cargo"
         RUSTUP_HOME = "${WORKSPACE}/.rustup"
         PATH = "${WORKSPACE}/.cargo/bin:${PATH}"
-        TAG_NAME = "${params.TAG_NAME}"
     }
 
     stages {
