@@ -9,25 +9,6 @@ pipeline {
     }
 
     stages {
-        // Stage 1: Debugging - Capture payload
-        stage('Capture Webhook Data') {
-            steps {
-                script {
-                    // Validasi akhir
-                    if (!env.TAG_NAME?.trim()) {
-                        error """
-                        ❌ TAG_NAME not found. Possible causes:
-                        1. GitHub webhook misconfigured
-                        2. Generic Webhook Trigger plugin not extracting properly
-                        3. Payload format mismatch
-                        Current env: ${env.getEnvironment()}
-                        """
-                    }
-                    echo "✅ Using TAG_NAME: ${env.TAG_NAME}"
-                }
-            }
-        }
-
         // Stage 2: Setup Rust
         stage('Setup Rust') {
             steps {
@@ -46,7 +27,7 @@ pipeline {
                 echo "🔄 Cloning tag: ${env.TAG_NAME}"
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: "refs/tags/${env.TAG_NAME}"]],
+                    branches: [[name: "refs/tags/v0.3.0"]],
                     userRemoteConfigs: [[
                         url: 'https://github.com/witsuu/qrcode-generator-rust.git',
                     ]],
