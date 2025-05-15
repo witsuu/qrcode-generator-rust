@@ -1,3 +1,10 @@
+properties([
+    parameters([
+        string(name: 'TAG_NAME', defaultValue: '', description: 'GitHub Release tag name')
+    ])
+])
+
+
 pipeline {
     agent any
 
@@ -8,6 +15,11 @@ pipeline {
     }
 
     stages {
+        stage('Debug TAG_NAME') {
+            steps {
+                echo "TAG_NAME is: ${env.TAG_NAME}"
+            }
+        }
         stage('Setup Rust') {
             steps {
                 sh '''
@@ -21,9 +33,9 @@ pipeline {
 
         stage('Clone Tag') {
             steps {
-                echo "🚀 Cloning release tag: ${TAG_NAME}"
+                echo "🚀 Cloning release tag: ${env.TAG_NAME}"
                 checkout([$class: 'GitSCM',
-                    branches: [[name: "refs/tags/${TAG_NAME}"]],
+                    branches: [[name: "refs/tags/${env.TAG_NAME}"]],
                     userRemoteConfigs: [[url: 'https://github.com/witsuu/qrcode-generator-rust.git']]
                 ])
             }
