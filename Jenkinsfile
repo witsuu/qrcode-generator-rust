@@ -13,21 +13,6 @@ pipeline {
         stage('Capture Webhook Data') {
             steps {
                 script {
-                    // Debug 1: Tampilkan semua parameter
-                    echo "All build parameters: ${params}"
-                    
-                    // Debug 2: Tampilkan penyebab build
-                    echo "Build causes: ${currentBuild.getBuildCauses()}"
-                    
-                    // Debug 3: Coba baca payload manual
-                    try {
-                        def payload = readJSON text: currentBuild.getBuildCauses()[0].shortDescription
-                        echo "Raw payload: ${payload}"
-                        env.TAG_NAME = payload.release?.tag_name
-                    } catch(e) {
-                        echo "Cannot parse payload: ${e.message}"
-                    }
-                    
                     // Validasi akhir
                     if (!env.TAG_NAME?.trim()) {
                         error """
