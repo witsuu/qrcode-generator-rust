@@ -74,7 +74,6 @@ pipeline {
         }
         failure {
             echo "❌ Failed to build ${env.TAG_NAME}"
-            slackSend channel: '#builds', message: "Build failed for ${env.TAG_NAME}"  # Contoh notifikasi
         }
     }
 }
