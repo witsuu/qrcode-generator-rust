@@ -18,7 +18,7 @@ pipeline {
                     
                     // Verifikasi TAG_NAME dari webhook
                     if (!env.TAG_NAME?.trim()) {
-                        error "❌ TAG_NAME not found in webhook payload. Ensure GitHub webhook is properly configured with '$.release.tag_name'"
+                        error "❌ TAG_NAME not found in webhook payload. Ensure GitHub webhook is properly configured with release.tag_name"
                     }
                     echo "✅ Received TAG_NAME from webhook: ${env.TAG_NAME}"
                 }
