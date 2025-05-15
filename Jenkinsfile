@@ -12,7 +12,7 @@ pipeline {
             steps {
                 sh '''
                     curl https://sh.rustup.rs -sSf | sh -s -- -y
-                    source ${WORKSPACE}/.cargo/env
+                    . ${WORKSPACE}/.cargo/env
                     rustc --version
                     cargo --version
                 '''
@@ -32,7 +32,7 @@ pipeline {
         stage('Build Release') {
             steps {
                 sh '''
-                    source ${WORKSPACE}/.cargo/env
+                    . ${WORKSPACE}/.cargo/env
                     cargo build --release
                 '''
             }
