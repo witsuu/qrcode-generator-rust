@@ -14,7 +14,7 @@ pipeline {
             steps {
                 script {
                     // Log semua environment variables
-                    echo "All env variables:\n${env.getEnvironment().collect { "$it.key=$it.value" }.join('\n')}"
+                    echo "All env variables:\n${env}"
                     
                     // Verifikasi TAG_NAME dari webhook
                     if (!env.TAG_NAME?.trim()) {
