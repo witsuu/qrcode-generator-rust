@@ -10,7 +10,7 @@ RUN apt-get update && \
 
 # Create a dummy project to cache dependencies
 COPY Cargo.toml Cargo.lock ./
-mkdir src && \
+RUN mkdir src && \
     echo "fn main() {println!(\"if you see this, the build broke\")}" > src/main.rs
 
 # Build dependencies only
@@ -43,7 +43,7 @@ USER appuser
 COPY --from=builder /usr/src/app/target/release/qrcode-generator /app/qrcode-generator
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 3200
 
 # Set the command to run the binary
 CMD ["./qrcode-generator"]
