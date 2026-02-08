@@ -1,0 +1,7 @@
+services:
+  qrcode-generator:
+    build: .
+    ports:
+      - "3200:3200"
+    restart: unless-stopped
+    # Use the default network
