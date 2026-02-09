@@ -2,6 +2,10 @@ use image::{ImageBuffer, Rgb};
 use qrcode::{types::QrError, EcLevel, QrCode};
 
 pub fn new(data: String, width: u32) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>, QrError> {
+    if width == 0 {
+        return Err(QrError::InvalidVersion);
+    }
+
     let code = QrCode::with_error_correction_level(data.as_bytes(), EcLevel::M)?;
 
     let module_count = code.width() as u32;

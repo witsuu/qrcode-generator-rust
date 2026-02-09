@@ -7,8 +7,6 @@ use std::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
-use image::Rgb;
-
 use crate::{
     utils::{
         create_qrcode,
@@ -79,80 +77,62 @@ pub async fn generate_qrcode_with_logo(
         body.logoHeight,
     );
 
-    // Check cache first
     if let Some(cached_bytes) = state.qr_cache.get(&cache_key).await {
         return response_bytes(cached_bytes, Some("image/webp")).await;
     }
 
-    // Clone values for async block
-    let http_client = state.http_client.clone();
-    let logo_url = body.logoUrl.clone();
+    // 1. FETCH LOGO ASYNC (AMAN)
+    let logo_bytes = match state.http_client.get(&body.logoUrl).send().await {
+        Ok(resp) => match resp.bytes().await {
+            Ok(b) => b,
+            Err(_) => return response_error(StatusCode::BAD_REQUEST),
+        },
+        Err(_) => return response_error(StatusCode::BAD_REQUEST),
+    };
+
     let data = body.data.clone();
     let width = body.width;
     let logo_width = body.logoWidth;
     let logo_height = body.logoHeight;
+    let logo_bytes = logo_bytes.to_vec();
 
+    // 2. CPU WORK ONLY
     let result = tokio::task::spawn_blocking(move || {
-        // This needs to be in a blocking context because we're doing CPU-intensive work
-        let mut image: image::ImageBuffer<Rgb<u8>, Vec<u8>> = create_qrcode::new(data, width)
-            .map_err(|e| match e {
-                qrcode::types::QrError::DataTooLong => StatusCode::BAD_REQUEST,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            })?;
+        let mut image = create_qrcode::new(data, width).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-        // Fetch logo - we need to use blocking reqwest call here
-        let bytes_logo = tokio::runtime::Handle::current().block_on(async {
-            http_client
-                .get(&logo_url)
-                .send()
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-                .bytes()
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-        })?;
+        let logo = image::io::Reader::new(Cursor::new(logo_bytes))
+            .with_guessed_format()
+            .map_err(|_| StatusCode::BAD_REQUEST)?
+            .decode()
+            .map_err(|_| StatusCode::BAD_REQUEST)?
+            .into_rgb8();
 
-        let image2 = match image::io::Reader::new(Cursor::new(bytes_logo)).with_guessed_format() {
-            Ok(img) => img
-                .decode()
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-                .into_rgb8(),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
-        };
+        let target_height = logo_height.unwrap_or_else(|| {
+            (logo.height() as f32 / logo.width() as f32 * logo_width as f32) as u32
+        });
 
-        let logo_height = match logo_height {
-            Some(h) => h,
-            _ => {
-                (image2.height() as f32 / image2.width() as f32 * logo_width as f32).round() as u32
-            }
-        };
-
-        let resize_image2 = image::imageops::resize(
-            &image2,
+        let resized = image::imageops::resize(
+            &logo,
             logo_width,
-            logo_height,
+            target_height,
             image::imageops::FilterType::Nearest,
         );
 
-        let x = (image.width() as i64 / 2) - (resize_image2.width() as i64 / 2);
-        let y = (image.height() as i64 / 2) - (resize_image2.height() as i64 / 2);
+        let x = (image.width() as i64 - resized.width() as i64) / 2;
+        let y = (image.height() as i64 - resized.height() as i64) / 2;
 
-        image::imageops::overlay(&mut image, &resize_image2, x, y);
+        image::imageops::overlay(&mut image, &resized, x, y);
 
-        let (bytes, mime_type) =
-            reader_image(image).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        Ok((bytes, mime_type))
+        reader_image(image).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     })
     .await;
 
     match result {
-        Ok(Ok((bytes, mime_type))) => {
-            // Store in cache
+        Ok(Ok((bytes, mime))) => {
             state.qr_cache.insert(cache_key, bytes.clone()).await;
-            response_bytes(bytes, Some(&mime_type)).await
+            response_bytes(bytes, Some(&mime)).await
         }
-        Ok(Err(err)) => response_error(err),
+        Ok(Err(e)) => response_error(e),
         Err(_) => response_error(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
