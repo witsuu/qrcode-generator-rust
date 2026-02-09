@@ -1,6 +1,7 @@
 services:
   qrcode-generator:
-    container_name: "qrcode-generator"
+    image: qrcode-generator
+    container_name: qrcode-generator
     build: .
     ports:
       - "3200:3200"
