@@ -13,6 +13,7 @@ use axum::{
 };
 use moka::future::Cache;
 
+use axum_prometheus::PrometheusMetricLayer;
 use route::create_route;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -53,8 +54,14 @@ async fn main() {
         .allow_credentials(false)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
 
-    // Build route with state
-    let app = create_route(state).layer(cors).fallback(handler_404);
+    // Setup Prometheus metrics
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+
+    // Build route with state and metrics
+    let app = create_route(state, metric_handle)
+        .layer(prometheus_layer)
+        .layer(cors)
+        .fallback(handler_404);
 
     // Run server with graceful shutdown
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3200").await.unwrap();

@@ -19,3 +19,4 @@ tokio = { version = "1.38.0", features = ["full"] }
 tokio-util = "0.7.11"
 tower-http = { version = "0.5.2", features = ["full"] }
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
+axum-prometheus = "0.10.0"
