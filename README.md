@@ -17,7 +17,15 @@ A high-performance QR Code generator REST API built with Rust, Axum, and Tokio. 
 - **Libraries**:
   - `qrcode`: For QR code generation logic.
   - `image`: For image processing (overlaying logos).
-  - `attohttpc`: For fetching remote logo images.
+  - `reqwest`: For fetching remote logo images.
+
+## Documentation
+
+Detailed documentation is available in the [docs](./docs) folder:
+- [API Reference](./docs/api.md)
+- [Architecture](./docs/architecture.md)
+- [Deployment Guide](./docs/deployment.md)
+- [Development Guide](./docs/development.md)
 
 ## Getting Started
 
